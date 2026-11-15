@@ -1,0 +1,53 @@
+name: Build HeliBoard APK
+
+on:
+  workflow_dispatch:
+  push:
+    paths:
+      - 'HeliBoard-main.zip'
+      - '.github/workflows/build.yml'
+
+concurrency:
+  group: build-apk
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Unzip the project
+        run: |
+          mkdir project
+          unzip -oq HeliBoard-main.zip -d project
+
+      - name: Install the Android NDK
+        run: |
+          SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
+          yes | "$SDKM" --licenses > /dev/null || true
+          "$SDKM" "ndk;28.0.13004108" || true
+
+      - name: Build
+        working-directory: project/HeliBoard-main
+        run: |
+          chmod +x gradlew
+          ./gradlew assembleDebug --no-daemon --stacktrace
+
+      - name: Keep the APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: apk
+          path: project/HeliBoard-main/app/build/outputs/apk/debug/*.apk
+
+      - name: Keep the reports if the build failed
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: reports
+          path: project/HeliBoard-main/*/build/reports
