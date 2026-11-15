@@ -26,6 +26,7 @@ jobs:
         run: |
           mkdir project
           unzip -oq HeliBoard-main.zip -d project
+          chmod -R u+rwX project
 
       - name: Install the Android NDK
         run: |
